@@ -1,0 +1,26 @@
+{
+  "English": {
+    "header": {
+      "line1": "Bhaskaracharya National Institute for Space Applications and Geo-informatics",
+      "line2": "Ministry of Electronics and Information Technology (MeitY)",
+      "line3": "Government of India"
+    },
+    "office_order_title": "OFFICE ORDER",
+    "footer": {
+      "to_label": "To:",
+      "signature": "Director General"
+    }
+  },
+  "Hindi": {
+    "header": {
+      "line1": "भास्कराचार्य राष्ट्रीय अंतरिक्ष अनुप्रयोग एवं भू-सूचना विज्ञान संस्थान",
+      "line2": "इलेक्ट्रॉनिक्स एवं सूचना प्रौद्योगिकी मंत्रालय",
+      "line3": "भारत सरकार"
+    },
+    "office_order_title": "कार्यालय आदेश",
+    "footer": {
+      "to_label": "प्रति:",
+      "signature": "महानिदेशक"
+    }
+  }
+}
