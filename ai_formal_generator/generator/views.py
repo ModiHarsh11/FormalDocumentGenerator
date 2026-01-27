@@ -67,14 +67,15 @@ def generate_document(request):
             system_prompt = """
 आप एक भारतीय सरकारी कार्यालय आदेश लेखक हैं।
 केवल आदेश की मुख्य सामग्री लिखिए।
-कोई हेडर, संदर्भ संख्या, दिनांक, हस्ताक्षर न लिखें।
+कोई 
+दस्तावेज़ प्रकार, हेडर, संदर्भ संख्या, दिनांक, हस्ताक्षर न लिखें।
 पूर्णतः शुद्ध हिंदी में लिखें।
 """
         else:
             system_prompt = """
 You are an Indian government office order drafting officer.
 Write ONLY the body content.
-Do not include header, reference, date, or signature.
+Do not include document type, header, reference, date, or signature.
 """
 
         model = genai.GenerativeModel("gemini-2.5-flash-lite")
@@ -147,22 +148,24 @@ Government of India
     date_label = "दिनांक:" if lang == "Hindi" else "Date:"
 
     meta = Table([
-        [f"{ref_label} {ref_id}", f"{date_label} {date}"]
-    ], colWidths=[250, 200])
+    [f"<b>{ref_label} {ref_id}</b>", f"<b>{date_label} {date}</b>"]
+    ], colWidths=[410,110])
+
 
     story.append(meta)
-    story.append(Spacer(1, 20))
+    story.append(Spacer(1,20))
 
     # ---------- DOCUMENT TYPE ----------
     title = "कार्यालय आदेश" if lang == "Hindi" else "OFFICE ORDER"
 
     title_style = ParagraphStyle(
-        "title",
-        alignment=TA_CENTER,
-        fontName="HindiBold" if lang == "Hindi" else "Helvetica-Bold",
-        fontSize=12,
-        underline=True
+    "title",
+    alignment=TA_CENTER,
+    underline=True,
+    fontName="HindiBold" if lang == "Hindi" else "Helvetica-Bold",
+    fontSize=13,
     )
+
 
     story.append(Paragraph(title, title_style))
     story.append(Spacer(1, 20))
@@ -186,7 +189,7 @@ Government of India
         "from",
         alignment=TA_RIGHT,
         fontName=header_font,
-        fontSize=11
+        fontSize=12
     )
 
     story.append(Paragraph(from_pos, from_style))
@@ -200,23 +203,89 @@ Government of India
         fontSize=12
     )
 
-    to_label = "प्रति:" if lang == "Hindi" else "To:"
-    story.append(Paragraph(f"{to_label}<br/>{to_pos}", to_style))
+    to_label = "प्रति:<br/>" if lang == "Hindi" else "To:<br/>"
+    story.append(Paragraph(f"{to_label}<br/>{to_pos}, BISAG-N", to_style))
 
     doc.build(story)
     return response
 
 
 def download_docx(request):
-    doc = Document()
-    doc.add_heading("BISAG Office Order", level=1)
+    lang = request.session["language"]
+    content = request.session["content"]
+    ref_id = request.session["reference_id"]
+    date = request.session["order_date"]
 
-    doc.add_paragraph(f"Ref: {request.session['reference_id']}")
-    doc.add_paragraph(f"Date: {request.session['order_date']}")
+    from_pos = DESIGNATION_MAP[request.session["from_pos"]]["hi" if lang == "Hindi" else "en"]
+    to_pos = DESIGNATION_MAP[request.session["to_pos"]]["hi" if lang == "Hindi" else "en"]
+
+    doc = Document()
+
+    # ---------- HEADER ----------
+    header_lines = [
+        "भास्करचार्य अंतरिक्ष अनुप्रयोग एवं भू-सूचना विज्ञान संस्थान (BISAG-N)",
+        "इलेक्ट्रॉनिक्स एवं सूचना प्रौद्योगिकी मंत्रालय (MeitY)",
+        "भारत सरकार"
+    ] if lang == "Hindi" else [
+        "Bhaskaracharya Institute for Space Applications & Geo-Informatics (BISAG-N)",
+        "Ministry of Electronics and Information Technology (MeitY)",
+        "Government of India"
+    ]
+
+    for line in header_lines:
+        p = doc.add_paragraph()
+        p.alignment = 1  # CENTER
+        run = p.add_run(line)
+        run.bold = True
+
     doc.add_paragraph("")
 
-    for line in request.session["content"].split("\n"):
-        doc.add_paragraph(line)
+    # ---------- REF & DATE ----------
+    table = doc.add_table(rows=1, cols=2)
+    table.columns[0].width = 4500000
+    table.columns[1].width = 2000000
+
+    left = table.rows[0].cells[0].paragraphs[0]
+    right = table.rows[0].cells[1].paragraphs[0]
+
+    left.add_run(
+        ("सं: " if lang == "Hindi" else "Ref. No: ") + ref_id
+    ).bold = True
+
+    right.alignment = 2  # RIGHT
+    right.add_run(
+        ("दिनांक: " if lang == "Hindi" else "Date: ") + date
+    ).bold = True
+
+    doc.add_paragraph("")
+
+    # ---------- DOCUMENT TYPE ----------
+    title = "कार्यालय आदेश" if lang == "Hindi" else "OFFICE ORDER"
+    p = doc.add_paragraph()
+    p.alignment = 1
+    run = p.add_run(title)
+    run.bold = True
+    run.underline = True
+
+    doc.add_paragraph("")
+
+    # ---------- BODY ----------
+    for para in content.split("\n\n"):
+        doc.add_paragraph(para)
+
+    doc.add_paragraph("")
+
+    # ---------- FROM (RIGHT) ----------
+    p = doc.add_paragraph()
+    p.alignment = 2  # RIGHT
+    p.add_run(from_pos).bold = True
+
+    doc.add_paragraph("")
+
+    # ---------- TO (LEFT) ----------
+    p = doc.add_paragraph()
+    p.add_run("प्रति:\n" if lang == "Hindi" else "To:\n").bold = True
+    p.add_run(to_pos + ", BISAG-N")
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
@@ -224,3 +293,4 @@ def download_docx(request):
     response["Content-Disposition"] = 'attachment; filename="BISAG_Office_Order.docx"'
     doc.save(response)
     return response
+
