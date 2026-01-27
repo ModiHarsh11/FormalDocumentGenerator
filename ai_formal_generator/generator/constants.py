@@ -62,7 +62,7 @@ DESIGNATION_MAP = {
         "en": "Director Standardisation",
     },
     "Interns": {
-        "hi": "इंटर्न्स",
+        "hi": "प्रशिक्षार्थियों",
         "en": "Interns",
     },
     "All Employee": {
@@ -71,3 +71,4 @@ DESIGNATION_MAP = {
     },
 
 }
+
